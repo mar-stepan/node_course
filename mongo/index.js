@@ -1,15 +1,46 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost/mongo-exercises')
+mongoose.connect('mongodb://localhost/mongo-exercises',
+    {useNewUrlParser: true})
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.log('Could not connect to MongoDB', err));
 
 const courseSchema = new mongoose.Schema({
-    name: String,
+    name: {
+        type: String, 
+        required: true,
+        minLength: 5,
+        maxLength: 255,
+        // match: /patter/
+    },
+    category: {
+      type: String,
+      required: true,
+      enum: ['web', 'mobile', 'network'],
+      lowercase: true,
+      // uppercase: true,
+      trim: true  
+    },
     author: String,
-    tags: [String],
+    tags: {
+        type: Array,
+        validate: {
+            validator: function (v) {
+                return v && v.length > 0
+            },
+            message: 'A course should have at least one tag.'
+        }
+    },
     date: {type: Date, default: Date.now},
-    isPublished: Boolean
+    isPublished: Boolean,
+    price: {
+        type: Number,
+        required: function() { return this.isPublished },
+        min: 10,
+        max: 200,
+        get: v => Math.round(v),
+        set: v => Math.round(v)
+    }
 });
 
 const Course = mongoose.model('Course', courseSchema);
@@ -17,14 +48,21 @@ const Course = mongoose.model('Course', courseSchema);
 async function createCourse() {
     const course = new Course({
         name: 'Angular Course',
+        category: 'Web',
         author: 'Stepan',
-        tags: ['angular', 'frontend'],
-        isPublished: true
+        tags: ['frontend'],
+        isPublished: true,
+        price: 15.8
     });
-    const result = await course.save();
-    console.log('', result);
+    try {
+        const result = await course.save();
+        console.log('', result);
+    } catch (e) {
+        for (let field in e.errors) 
+            console.log('ERROR', e.errors[field].message);
+    }
 }
-// createCourse().then();
+createCourse().then();
 
 // show only select value, sort from bigger to lowest price, show array that or that
 async function f() {
